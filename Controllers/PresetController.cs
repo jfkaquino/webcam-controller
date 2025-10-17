@@ -32,16 +32,17 @@ namespace WebcamController.Controllers
 
             foreach (var preset in presets)
             {
-                OnPresetChanged(new PresetChange(preset.Device, preset, PresetChangeType.Loaded));
+                OnPresetChanged(new PresetChange(preset, PresetChangeType.Loaded));
             }
-            RegisterAllHotkeys();
+            RegisterAllHotkeys(presets);
         }
 
-        public int CreatePreset()
+        public void CreatePreset()
         {
             using var db = new AppDbContext();
 
             var connectedDevice = _cameraController.ConnectedDevice;
+
             var savedDevice = db.Devices
                 .FirstOrDefault(d => d.DevicePath == connectedDevice.DevicePath);
 
@@ -58,56 +59,76 @@ namespace WebcamController.Controllers
             var newPreset = new Preset
             {
                 Name = "Novo preset",
-                Device = savedDevice,
+                CameraControls = _cameraController.CameraControls,
+                Device = savedDevice
             };
 
+            db.Presets.Add(newPreset);
             db.SaveChanges();
 
-            var change = new PresetChange(savedDevice, newPreset, PresetChangeType.Created);
+            var change = new PresetChange(newPreset, PresetChangeType.Created);
             OnPresetChanged(change);
-            return newPreset.Id;
         }
 
-        public void UpdatePreset(Preset updatedPreset)
+        public void UpdatePreset(Preset unsavedPreset)
         {
             using var db = new AppDbContext();
 
-            db.Devices.Update(updatedPreset.Device);
-            db.Presets.Update(updatedPreset);
-            var change = new PresetChange(updatedPreset.Device, updatedPreset, PresetChangeType.Updated);
-            OnPresetChanged(change);
+            var savedPreset = GetPresetFromDb(db, unsavedPreset.Id);
+            savedPreset.UpdateFrom(unsavedPreset);
+
             db.SaveChanges();
+            var change = new PresetChange(savedPreset, PresetChangeType.Updated);
+            OnPresetChanged(change);
         }
 
         public void DeletePreset(Preset removedPreset)
         {
             using var db = new AppDbContext();
-            db.Presets.Remove(removedPreset);
 
-            var change = new PresetChange(removedPreset.Device, removedPreset, PresetChangeType.Removed);
-            OnPresetChanged(change);
+            var presetToDelete = GetPresetFromDb(db, removedPreset.Id);
 
-            if (!removedPreset.Device.Presets.Any())
+            db.Presets.Remove(presetToDelete);
+
+            var hasOtherPresets = db.Presets.Any(p => p.Device.Id == removedPreset.Device.Id && p.Id != removedPreset.Id);
+            if (!hasOtherPresets)
             {
-                db.Devices.Remove(removedPreset.Device);
+                var deviceToRemove = db.Devices.Find(removedPreset.Device.Id);
+                if (deviceToRemove != null)
+                {
+                    db.Devices.Remove(deviceToRemove);
+                }
             }
+
             db.SaveChanges();
+            var change = new PresetChange(removedPreset, PresetChangeType.Removed);
+            OnPresetChanged(change);
         }
 
-        public void SaveAllPresets()
+        private Preset GetPresetFromDb(AppDbContext db, int presetId)
         {
-            using var db = new AppDbContext();
-            db.SaveChanges();
+            var preset = db.Presets
+                .Include(p => p.Device)
+                .Include(p => p.Hotkey)
+                .FirstOrDefault(p => p.Id == presetId);
+
+            return preset;
+        }
+        private Device GetDeviceFromDb(AppDbContext db, int deviceId)
+        {
+            var device = db.Devices
+                .Include(d => d.Presets)
+                .FirstOrDefault(d => d.Id == deviceId);
+            return device;
         }
 
         #endregion
 
         #region Atalho de teclado
 
-        public void RegisterAllHotkeys()
+        public void RegisterAllHotkeys(List<Preset> presets)
         {
-            using var db = new AppDbContext();
-            foreach (var preset in db.Presets.Include(p => p.Hotkey))
+            foreach (var preset in presets)
             {
                 if (preset.Hotkey != null)
                 {
@@ -118,6 +139,8 @@ namespace WebcamController.Controllers
 
         public void SetPresetHotkey(Preset preset, Hotkey hotkey)
         {
+            using var db = new AppDbContext();
+
             if (hotkey == null)
             {
                 _hotkeyService.Unregister(preset.Id);
@@ -128,12 +151,11 @@ namespace WebcamController.Controllers
                 _hotkeyService.Register(hotkey, preset.Id);
             }
 
-            using var db = new AppDbContext();
-            preset.Hotkey = hotkey;
-            db.Presets.Update(preset);
-            db.SaveChanges();
+            var presetFromDb = GetPresetFromDb(db, preset.Id);
+            presetFromDb.Hotkey = hotkey;
 
-            var change = new PresetChange(preset.Device, preset, PresetChangeType.Updated);
+            db.SaveChanges();
+            var change = new PresetChange(presetFromDb, PresetChangeType.Updated);
             OnPresetChanged(change);
         }
 
@@ -147,9 +169,9 @@ namespace WebcamController.Controllers
         {
             using var db = new AppDbContext();
 
-            var preset = db.Presets.FirstOrDefault(p => p.Id == presetId);
-            //_cameraController.Connect(preset.Device);
-            //_cameraController.ApplyPreset(preset);
+            var preset = GetPresetFromDb(db, presetId);
+            _cameraController.Connect(preset.Device);
+            _cameraController.ApplyPreset(preset);
             OnPresetApplied(preset.Device, preset);
         }
 
@@ -160,7 +182,7 @@ namespace WebcamController.Controllers
         private void OnPresetChanged(PresetChange change) => PresetChanged?.Invoke(this, change);
 
         private void OnPresetApplied(Device device, Preset preset) =>
-            PresetApplied?.Invoke(this, new PresetAppliedEventArgs(device, preset));
+            PresetApplied?.Invoke(this, new PresetAppliedEventArgs(preset));
     }
 }
 public enum PresetChangeType
@@ -168,19 +190,16 @@ public enum PresetChangeType
     Loaded,
     Created,
     Updated,
-    Removed,
-    Saved
+    Removed
 }
 
 public class PresetChange : EventArgs
 {
-    public Device Device { get; }
     public Preset Preset { get; }
     public PresetChangeType ChangeType { get; }
 
-    public PresetChange(Device device, Preset preset, PresetChangeType changeType)
+    public PresetChange(Preset preset, PresetChangeType changeType)
     {
-        Device = device;
         Preset = preset;
         ChangeType = changeType;
     }
@@ -188,12 +207,10 @@ public class PresetChange : EventArgs
 
 public class PresetAppliedEventArgs : EventArgs
 {
-    public Device Device { get; }
     public Preset Preset { get; }
 
-    public PresetAppliedEventArgs(Device device, Preset preset)
+    public PresetAppliedEventArgs(Preset preset)
     {
-        Device = device;
         Preset = preset;
     }
 }

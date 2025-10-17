@@ -45,7 +45,6 @@ namespace WebcamController.Views
         private void LoadDevices()
         {
             CameraController.GetAvailableDevices();
-            cmbDevices.Items.Clear();
             cmbDevices.DataSource = CameraController.Devices;
             cmbDevices.DisplayMember = "FriendlyName";
             cmbDevices.ValueMember = "DevicePath";

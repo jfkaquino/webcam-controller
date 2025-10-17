@@ -40,7 +40,6 @@ namespace WebcamController.Controllers
         public void Connect(Device device)
         {
             _cameraService.Connect(device);
-
             OnDeviceChanged(device, DeviceStatus.Connected);
         }
 

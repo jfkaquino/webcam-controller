@@ -174,7 +174,6 @@
             itemSaveAll.ShortcutKeys = Keys.Control | Keys.S;
             itemSaveAll.Size = new Size(198, 22);
             itemSaveAll.Text = "Salvar tudo";
-            itemSaveAll.Click += SavePreset_Click;
             // 
             // sprItem1
             // 
@@ -268,7 +267,6 @@
             btnSaveAll.TabIndex = 3;
             btnSaveAll.Text = "&Salvar tudo";
             btnSaveAll.UseVisualStyleBackColor = true;
-            btnSaveAll.Click += SavePreset_Click;
             // 
             // btnNewPreset
             // 

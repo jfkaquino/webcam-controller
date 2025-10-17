@@ -1,4 +1,5 @@
-﻿using System.Data;
+﻿using DirectShowLib;
+using System.Data;
 using WebcamController.Controllers;
 using WebcamController.Forms;
 using WebcamController.Models;
@@ -53,21 +54,19 @@ namespace WebcamController.Views
         private void OnPresetChanged(object? sender, PresetChange e)
         {
             _isUpdating = true;
-            listPresets.BeginUpdate();
             switch (e.ChangeType)
             {
-                case PresetChangeType.Loaded: AddPresetToListView(e.Device, e.Preset); break;
-                case PresetChangeType.Created: AddPresetToListView(e.Device, e.Preset); break;
+                case PresetChangeType.Loaded: AddPresetToListView(e.Preset); break;
                 case PresetChangeType.Updated: UpdatePresetInListView(e.Preset); break;
                 case PresetChangeType.Removed: RemovePresetFromListView(e.Preset); break;
+                case PresetChangeType.Created: CreatePresetinListView(e.Preset); break;
             }
-            listPresets.EndUpdate();
             _isUpdating = false;
         }
 
         private void OnPresetApplied(object? sender, PresetAppliedEventArgs e)
         {
-            var item = FindPresetItem(e.Preset.Id);
+            var item = FindItemPreset(e.Preset.Id);
             listPresets.Focus();
             item.Group.CollapsedState = ListViewGroupCollapsedState.Expanded;
             item.EnsureVisible();
@@ -75,19 +74,20 @@ namespace WebcamController.Views
             MessageBox.Show("Preset aplicado");
         }
 
-        private void AddPresetToListView(Device device, Preset preset)
+        private void AddPresetToListView(Preset preset)
         {
+            listPresets.BeginUpdate();
             var group = listPresets.Groups.Cast<ListViewGroup>()
-                .FirstOrDefault(g => g.Tag is Device d && d.DevicePath == device.DevicePath);
+                .FirstOrDefault(g => g.Tag is Device d && d.DevicePath == preset.Device.DevicePath);
 
             if (group == null)
             {
-                bool status = CameraController.Devices.Any(d => d.DevicePath == device.DevicePath);
+                bool status = CameraController.Devices.Any(d => d.DevicePath == preset.Device.DevicePath);
                 group = new ListViewGroup
                 {
-                    Header = device.FriendlyName,
+                    Header = preset.Device.FriendlyName,
                     Subtitle = status ? "Disponível" : "Indisponível",
-                    Tag = device,
+                    Tag = preset.Device,
                     CollapsedState = status ? ListViewGroupCollapsedState.Expanded : ListViewGroupCollapsedState.Collapsed
                 };
                 listPresets.Groups.Add(group);
@@ -96,7 +96,7 @@ namespace WebcamController.Views
             var item = new ListViewItem(preset.Name)
             {
                 Name = preset.Id.ToString(),
-                ToolTipText = $"ID: {preset.Id}\nNome: {preset.Name}\nAtalho: {preset.Hotkey?.DisplayString ?? "Nenhum"}\nDispositivo: {device.FriendlyName}",
+                ToolTipText = $"ID: {preset.Id}\nNome: {preset.Name}\nAtalho: {preset.Hotkey?.DisplayString ?? "Nenhum"}\nDispositivo: {preset.Device.FriendlyName}",
                 Group = group,
                 Tag = preset
             };
@@ -104,21 +104,23 @@ namespace WebcamController.Views
             item.SubItems.Add(preset.Id.ToString());
 
             listPresets.Items.Add(item);
+            listPresets.EndUpdate();
         }
 
         private void UpdatePresetInListView(Preset preset)
         {
-            var item = FindPresetItem(preset.Id);
+            var item = FindItemPreset(preset.Id);
             if (item == null) return;
 
             item.Tag = preset;
+            item.ToolTipText = $"ID: {preset.Id}\nNome: {preset.Name}\nAtalho: {preset.Hotkey?.DisplayString ?? "Nenhum"}\nDispositivo: {preset.Device.FriendlyName}";
             item.SubItems[1].Text = preset.Hotkey?.DisplayString ?? "Nenhum";
             item.SubItems[2].Text = preset.Id.ToString();
         }
 
         private void RemovePresetFromListView(Preset preset)
         {
-            var item = FindPresetItem(preset.Id);
+            var item = FindItemPreset(preset.Id);
             if (item == null) return;
 
             listPresets.Items.Remove(item);
@@ -128,6 +130,17 @@ namespace WebcamController.Views
             {
                 listPresets.Groups.Remove(group);
             }
+        }
+
+        private void CreatePresetinListView(Preset preset)
+        {
+            AddPresetToListView(preset);
+            var item = FindItemPreset(preset.Id);
+            listPresets.SelectedItems.Clear();
+            item.Group.CollapsedState = ListViewGroupCollapsedState.Expanded;
+            item.EnsureVisible();
+            item.Selected = true;
+            item.BeginEdit();
         }
 
         #endregion
@@ -143,26 +156,16 @@ namespace WebcamController.Views
 
         private void NewPreset()
         {
-            var presetId = PresetController.CreatePreset();
-
-            var item = FindPresetItem(presetId);
-            listPresets.SelectedItems.Clear();
-            item.Group.CollapsedState = ListViewGroupCollapsedState.Expanded;
-            item.EnsureVisible();
-            item.Selected = true;
-            item.BeginEdit();
-        }
-
-        private void SaveAll()
-        {
-            PresetController.SaveAllPresets();
-            listPresets.SelectedItems.Clear();
+            PresetController.CreatePreset();
         }
 
         private void RenamePreset()
         {
             var item = listPresets.SelectedItems[0];
+            listPresets.SelectedItems.Clear();
             item.Group.CollapsedState = ListViewGroupCollapsedState.Expanded;
+            item.EnsureVisible();
+            item.Selected = true;
             item.BeginEdit();
         }
 
@@ -240,8 +243,6 @@ namespace WebcamController.Views
 
         private void NewPreset_Click(object sender, EventArgs e) => NewPreset();
 
-        private void SavePreset_Click(object sender, EventArgs e) => SaveAll();
-
         private void ApplyPreset_Click(object sender, EventArgs e) => ApplyPreset();
 
         private void DeletePreset_Click(object sender, EventArgs e) => DeletePreset();
@@ -285,7 +286,7 @@ namespace WebcamController.Views
 
         #region ListView helpers
 
-        private ListViewItem FindPresetItem(int presetId) =>
+        private ListViewItem FindItemPreset(int presetId) =>
             listPresets.Items.Cast<ListViewItem>().FirstOrDefault(i => ((Preset)i.Tag).Id == presetId);
 
         private Preset SelectedPreset => (Preset)listPresets.SelectedItems[0].Tag;

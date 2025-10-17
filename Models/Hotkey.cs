@@ -10,4 +10,3 @@ namespace WebcamController.Models
         public bool NoRepeat { get; set; }
     }
 }
-
