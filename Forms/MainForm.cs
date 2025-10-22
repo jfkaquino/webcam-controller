@@ -1,10 +1,11 @@
 ﻿using WebcamController.Controllers;
 using WebcamController.Properties;
 using WebcamController.Services;
+using WebcamController.Views;
 
 namespace WebcamController.Forms
 {
-    public interface IClosableComponent
+    public interface IMainForm
     {
         public void OnMainFormClosing(object sender, FormClosingEventArgs e);
     }
@@ -17,17 +18,12 @@ namespace WebcamController.Forms
         private PresetController _presetController;
         private CameraController _cameraController;
 
-        public MainForm()
-        {
-            InitializeComponent();
-        }
-
         public MainForm(
         CameraService cameraService,
         HotkeyService hotkeyService,
         WindowsService windowsService,
         PresetController presetController,
-        CameraController cameraController) : this()
+        CameraController cameraController)
         {
             _cameraService = cameraService;
             _hotkeyService = hotkeyService;
@@ -35,22 +31,30 @@ namespace WebcamController.Forms
             _presetController = presetController;
             _cameraController = cameraController;
 
-            presetsView.PresetController = presetController;
-            presetsView.CameraController = cameraController;
-            presetsView.HotkeyService = hotkeyService;
-
-            cameraView.CameraController = cameraController;
+            InitializeComponent();
         }
 
-        #region Ciclo de vide
+        #region Ciclo de vida
 
         private void MainForm_Load(object sender, EventArgs e)
         {
+            presetsView.Initialize(_presetController, _cameraController, _hotkeyService);
+            cameraView.Initialize(_cameraController);
+
             HandleStartupArguments();
             LoadSettings();
         }
+
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
         {
+            if(e.CloseReason == CloseReason.UserClosing)
+            {
+                MinimizeToTray();
+                e.Cancel = true;
+                ShowNotification("O programa continuará em segundo plano na bandeja de notificações.");
+                return;
+            }
+
             Settings.Default.Save();
             _hotkeyService.Dispose();
             presetsView.OnMainFormClosing(sender, e);
@@ -98,7 +102,7 @@ namespace WebcamController.Forms
         #region Eventos de UI
 
         private void itemInstallFolder_Click(object sender, EventArgs e) => _windowsService.OpenProgramFolder();
-        private void itemExit_Click(object sender, EventArgs e) => Close();
+        private void itemExit_Click(object sender, EventArgs e) => Application.Exit();
         private void itemAbout_Click(object sender, EventArgs e) => new AboutBox().ShowDialog();
 
         #endregion
@@ -118,21 +122,13 @@ namespace WebcamController.Forms
             ShowInTaskbar = true;
             Activate();
         }
-        private void MainForm_Resize(object sender, EventArgs e)
-        {
-            if (WindowState == FormWindowState.Minimized)
-            {
-                MinimizeToTray();
-            }
-        }
 
         private void trayIcon_DoubleClick(object sender, EventArgs e) => RestoreFromTray();
         private void mostrarToolStripMenuItem_Click(object sender, EventArgs e) => RestoreFromTray();
-        private void sairToolStripMenuItem1_Click(object sender, EventArgs e) => Close();
 
         private bool _isShowing = false;
 
-        private void ShowNotification(string message, string title)
+        private void ShowNotification(string message, string title = "")
         {
             if (_isShowing) return;
             trayIcon.BalloonTipTitle = title;
@@ -142,9 +138,12 @@ namespace WebcamController.Forms
         }
 
         private void trayIcon_BalloonTipClosed(object sender, EventArgs e) => _isShowing = false;
-        private void trayIcon_BalloonTipClicked(object sender, EventArgs e) => _isShowing = false;
+        private void trayIcon_BalloonTipClicked(object sender, EventArgs e)
+        {
+            _isShowing = false;
+            RestoreFromTray();
+        }
 
         #endregion
-
     }
 }

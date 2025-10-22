@@ -22,6 +22,9 @@ namespace WebcamController
                 return;
             }
 
+            Application.ThreadException += ExceptionCapture;
+            AppDomain.CurrentDomain.UnhandledException += ExceptionCapture;
+
             ApplicationConfiguration.Initialize();
 
             var cameraService = new CameraService();
@@ -43,6 +46,55 @@ namespace WebcamController
                 )
             );
             GC.KeepAlive(mutex);
+        }
+
+        private static void ExceptionCapture(object sender, UnhandledExceptionEventArgs e) => ExceptionCapture((Exception)e.ExceptionObject);
+        private static void ExceptionCapture(object sender, ThreadExceptionEventArgs e) => ExceptionCapture(e.Exception);
+
+        private static void ExceptionCapture(Exception ex)
+        {
+
+            TaskDialogCommandLinkButton restartButton = new TaskDialogCommandLinkButton("Reiniciar programa");
+            TaskDialogCommandLinkButton exitButton = new TaskDialogCommandLinkButton("Encerrar programa");
+            TaskDialogPage page = new TaskDialogPage()
+            {
+                Caption = Application.ProductName,
+                Heading = "Ocorreu um erro inesperado",
+                Text = ex.InnerException != null ? ex.InnerException.Message : ex.Message,
+                Icon = TaskDialogIcon.Error,
+                AllowCancel = true,
+                Expander = new TaskDialogExpander()
+                {
+                    Text = "<a href=\"copy\">Copiar detalhes</a>\n\n" + ex.ToString(),
+                    Position = TaskDialogExpanderPosition.AfterFootnote,
+                },
+                EnableLinks = true,
+                Buttons =
+                {
+                    exitButton,
+                    restartButton,
+                    TaskDialogButton.Ignore,
+                },
+            };
+
+            page.LinkClicked += (s, e) =>
+            {
+                if (e.LinkHref == "copy")
+                {
+                    Clipboard.SetText(ex.ToString());
+                }
+            };
+
+            var result = TaskDialog.ShowDialog(page);
+
+            if (result == restartButton)
+            {
+                Application.Restart();
+            }
+            else if (result == exitButton)
+            {
+                Application.Exit();
+            }
         }
     }
 }

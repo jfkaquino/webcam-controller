@@ -16,10 +16,10 @@ namespace WebcamController.Views
             InitializeComponent();
         }
 
-        #region Life cycle
-
-        private void CameraView_Load(object sender, EventArgs e)
+        public void Initialize(CameraController cameraController)
         {
+            CameraController = cameraController;
+
             LoadDevices();
 
             ConnectCamera();
@@ -29,13 +29,12 @@ namespace WebcamController.Views
             CameraController.PropertyChanged += OnPropertyChanged;
         }
 
+        #region Life cycle
+
         private void OnDeviceChanged(object? sender, DeviceChangedEventArgs e)
         {
             _isUpdating = true;
-            switch (e.Status)
-            {
-                case DeviceStatus.Connected: cmbDevices.SelectedItem = e.Device; break;
-            }
+            if (e.Status == DeviceStatus.Connected) cmbDevices.SelectedItem = e.Device;
 
             ConfigureCameraControls();
             UpdateCameraControls();

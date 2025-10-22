@@ -114,13 +114,6 @@ namespace WebcamController.Controllers
 
             return preset;
         }
-        private Device GetDeviceFromDb(AppDbContext db, int deviceId)
-        {
-            var device = db.Devices
-                .Include(d => d.Presets)
-                .FirstOrDefault(d => d.Id == deviceId);
-            return device;
-        }
 
         #endregion
 
@@ -130,10 +123,7 @@ namespace WebcamController.Controllers
         {
             foreach (var preset in presets)
             {
-                if (preset.Hotkey != null)
-                {
-                    _hotkeyService.Register(preset.Hotkey, preset.Id);
-                }
+                if (preset.Hotkey != null) _hotkeyService.Register(preset.Hotkey, preset.Id);
             }
         }
 

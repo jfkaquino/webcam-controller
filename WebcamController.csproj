@@ -7,6 +7,8 @@
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationIcon>Resources\main.ico</ApplicationIcon>
+    <PackageIcon>main.ico</PackageIcon>
+    <AssemblyName>Webcam Manager</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
@@ -53,6 +55,10 @@
     <None Update="Properties\Settings.settings">
       <Generator>PublicSettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <None Update="Resources\main.ico">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
     </None>
   </ItemGroup>
 

@@ -30,11 +30,7 @@ namespace WebcamController.Services
             _cameraControl = _cameraFilter as IAMCameraControl;
             ConnectedDevice = device;
 
-            if (_cameraControl == null)
-            {
-                Disconnect();
-                throw new NotSupportedException("Camera does not support IAMCameraControl.");
-            }
+            if (_cameraControl == null) throw new NotSupportedException("Camera does not support IAMCameraControl.");
         }
 
         public void Dispose()

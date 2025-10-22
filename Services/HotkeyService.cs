@@ -7,7 +7,7 @@ namespace WebcamController.Services
     public class HotkeyService : IDisposable
     {
         private HotkeyWindow _hotkeyWindow;
-        private readonly Dictionary<int, Hotkey> _registeredHotkeys;
+        private readonly Dictionary<int, Hotkey> _registeredHotkeys = new();
 
         public event Action<int> HotkeyPressed;
         private enum Modifiers
@@ -22,23 +22,16 @@ namespace WebcamController.Services
         public HotkeyService()
         {
             _hotkeyWindow = new HotkeyWindow(this);
-            _registeredHotkeys = new Dictionary<int, Hotkey>();
         }
 
         public void Register(Hotkey hotkey, int id)
         {
-            if (id == null) { id = hotkey.Id; }
+            if (id == null) id = hotkey.Id;
 
             var (modifiers, key) = HotkeyConverter(hotkey);
-            if (hotkey.NoRepeat)
-            {
-                modifiers |= (uint)Modifiers.NoRepeat;
-            }
+            if (hotkey.NoRepeat) modifiers |= (uint)Modifiers.NoRepeat;
 
-            if (_registeredHotkeys.ContainsKey(id))
-            {
-                Unregister(id);
-            }
+            if (_registeredHotkeys.ContainsKey(id)) Unregister(id);
 
             bool result = NativeMethods.RegisterHotKey(_hotkeyWindow.Handle, id, modifiers, key);
             if (!result)
@@ -54,10 +47,8 @@ namespace WebcamController.Services
 
         public void Unregister(int id)
         {
-            if (!_registeredHotkeys.ContainsKey(id))
-            {
-                return;
-            }
+            if (!_registeredHotkeys.ContainsKey(id)) return;
+
             bool result = NativeMethods.UnregisterHotKey(_hotkeyWindow.Handle, id);
             if (!result)
             {
@@ -72,10 +63,7 @@ namespace WebcamController.Services
 
         public void Dispose()
         {
-            foreach (int id in _registeredHotkeys.Keys)
-            {
-                Unregister(id);
-            }
+            foreach (int id in _registeredHotkeys.Keys) Unregister(id);
             _hotkeyWindow?.Dispose();
         }
 

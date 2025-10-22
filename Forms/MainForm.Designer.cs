@@ -180,7 +180,7 @@
             sairToolStripMenuItem1.Name = "sairToolStripMenuItem1";
             sairToolStripMenuItem1.Size = new Size(118, 22);
             sairToolStripMenuItem1.Text = "Sair";
-            sairToolStripMenuItem1.Click += sairToolStripMenuItem1_Click;
+            sairToolStripMenuItem1.Click += itemExit_Click;
             // 
             // splitContainer1
             // 
@@ -205,12 +205,12 @@
             // 
             presetsView.CameraController = null;
             presetsView.Dock = DockStyle.Fill;
-            presetsView.HotkeyService = null;
             presetsView.Location = new Point(3, 3);
             presetsView.Name = "presetsView";
             presetsView.PresetController = null;
             presetsView.Size = new Size(286, 321);
             presetsView.TabIndex = 0;
+            presetsView.Tag = "Predefinições";
             // 
             // cameraView
             // 
@@ -235,7 +235,6 @@
             Text = "Webcam Manager";
             FormClosing += MainForm_FormClosing;
             Load += MainForm_Load;
-            Resize += MainForm_Resize;
             menuStrip1.ResumeLayout(false);
             menuStrip1.PerformLayout();
             contextTray.ResumeLayout(false);

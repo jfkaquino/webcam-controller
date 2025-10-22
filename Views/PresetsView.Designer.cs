@@ -30,9 +30,7 @@
         {
             components = new System.ComponentModel.Container();
             ListViewGroup listViewGroup1 = new ListViewGroup("Nome da câmera", HorizontalAlignment.Left);
-            ListViewItem listViewItem1 = new ListViewItem(new string[] { "Novo preset", "Ctrl+Shift+1" }, -1, SystemColors.WindowText, Color.Empty, new Font("Segoe UI", 9F));
-            ListViewItem listViewItem2 = new ListViewItem(new string[] { "*Novo Preset", "Ctrl+Shift_2" }, -1, SystemColors.WindowText, Color.Empty, new Font("Segoe UI", 9F, FontStyle.Bold));
-            ListViewItem listViewItem3 = new ListViewItem(new ListViewItem.ListViewSubItem[] { new ListViewItem.ListViewSubItem(null, "Novo preset"), new ListViewItem.ListViewSubItem(null, "Ctrl+Shift+2", SystemColors.WindowText, SystemColors.Window, new Font("Segoe UI", 9F, FontStyle.Strikeout)) }, -1);
+            ListViewItem listViewItem1 = new ListViewItem(new string[] { "Novo Preset", "Ctrl+Shift+1" }, -1);
             listPresets = new ListView();
             columnHeader1 = new ColumnHeader();
             columnHeader2 = new ColumnHeader();
@@ -45,7 +43,6 @@
             toolStripMenuItem11 = new ToolStripMenuItem();
             itemSelectAll = new ToolStripMenuItem();
             itemApplyPreset = new ToolStripMenuItem();
-            itemSaveAll = new ToolStripMenuItem();
             sprItem1 = new ToolStripSeparator();
             itemNewPreset = new ToolStripMenuItem();
             itemDeletePreset = new ToolStripMenuItem();
@@ -55,8 +52,8 @@
             imgSmall = new ImageList(components);
             imgLarge = new ImageList(components);
             tableLayoutPanel1 = new TableLayoutPanel();
+            btnDeletePreset = new Button();
             btnApplyPreset = new Button();
-            btnSaveAll = new Button();
             btnNewPreset = new Button();
             ctxItem.SuspendLayout();
             tableLayoutPanel1.SuspendLayout();
@@ -75,7 +72,7 @@
             listPresets.Groups.AddRange(new ListViewGroup[] { listViewGroup1 });
             listPresets.HeaderStyle = ColumnHeaderStyle.Nonclickable;
             listViewItem1.Group = listViewGroup1;
-            listPresets.Items.AddRange(new ListViewItem[] { listViewItem1, listViewItem2, listViewItem3 });
+            listPresets.Items.AddRange(new ListViewItem[] { listViewItem1 });
             listPresets.LabelEdit = true;
             listPresets.Location = new Point(3, 3);
             listPresets.Name = "listPresets";
@@ -100,9 +97,9 @@
             // 
             // ctxItem
             // 
-            ctxItem.Items.AddRange(new ToolStripItem[] { itemViewMode, itemSelectAll, itemApplyPreset, itemSaveAll, sprItem1, itemNewPreset, itemDeletePreset, itemRenamePreset, sprItem2, itemHotkey });
+            ctxItem.Items.AddRange(new ToolStripItem[] { itemViewMode, itemSelectAll, itemApplyPreset, sprItem1, itemNewPreset, itemDeletePreset, itemRenamePreset, sprItem2, itemHotkey });
             ctxItem.Name = "contextItem";
-            ctxItem.Size = new Size(199, 214);
+            ctxItem.Size = new Size(199, 170);
             // 
             // itemViewMode
             // 
@@ -114,7 +111,7 @@
             // toolStripMenuItem7
             // 
             toolStripMenuItem7.Name = "toolStripMenuItem7";
-            toolStripMenuItem7.Size = new Size(180, 22);
+            toolStripMenuItem7.Size = new Size(163, 22);
             toolStripMenuItem7.Tag = "0";
             toolStripMenuItem7.Text = "Ícones grandes";
             toolStripMenuItem7.Click += SelectListViewMode;
@@ -122,7 +119,7 @@
             // toolStripMenuItem8
             // 
             toolStripMenuItem8.Name = "toolStripMenuItem8";
-            toolStripMenuItem8.Size = new Size(180, 22);
+            toolStripMenuItem8.Size = new Size(163, 22);
             toolStripMenuItem8.Tag = "2";
             toolStripMenuItem8.Text = "Ícones pequenos";
             toolStripMenuItem8.Click += SelectListViewMode;
@@ -130,7 +127,7 @@
             // toolStripMenuItem9
             // 
             toolStripMenuItem9.Name = "toolStripMenuItem9";
-            toolStripMenuItem9.Size = new Size(180, 22);
+            toolStripMenuItem9.Size = new Size(163, 22);
             toolStripMenuItem9.Tag = "3";
             toolStripMenuItem9.Text = "Lista";
             toolStripMenuItem9.Click += SelectListViewMode;
@@ -138,7 +135,7 @@
             // toolStripMenuItem10
             // 
             toolStripMenuItem10.Name = "toolStripMenuItem10";
-            toolStripMenuItem10.Size = new Size(180, 22);
+            toolStripMenuItem10.Size = new Size(163, 22);
             toolStripMenuItem10.Tag = "1";
             toolStripMenuItem10.Text = "Detalhes";
             toolStripMenuItem10.Click += SelectListViewMode;
@@ -146,7 +143,7 @@
             // toolStripMenuItem11
             // 
             toolStripMenuItem11.Name = "toolStripMenuItem11";
-            toolStripMenuItem11.Size = new Size(180, 22);
+            toolStripMenuItem11.Size = new Size(163, 22);
             toolStripMenuItem11.Tag = "4";
             toolStripMenuItem11.Text = "Blocos";
             toolStripMenuItem11.Click += SelectListViewMode;
@@ -167,13 +164,6 @@
             itemApplyPreset.Size = new Size(198, 22);
             itemApplyPreset.Text = "Aplicar";
             itemApplyPreset.Click += ApplyPreset_Click;
-            // 
-            // itemSaveAll
-            // 
-            itemSaveAll.Name = "itemSaveAll";
-            itemSaveAll.ShortcutKeys = Keys.Control | Keys.S;
-            itemSaveAll.Size = new Size(198, 22);
-            itemSaveAll.Text = "Salvar tudo";
             // 
             // sprItem1
             // 
@@ -235,15 +225,27 @@
             tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.3333321F));
             tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.3333321F));
             tableLayoutPanel1.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 33.3333321F));
+            tableLayoutPanel1.Controls.Add(btnDeletePreset, 1, 0);
             tableLayoutPanel1.Controls.Add(btnApplyPreset, 2, 0);
-            tableLayoutPanel1.Controls.Add(btnSaveAll, 0, 0);
-            tableLayoutPanel1.Controls.Add(btnNewPreset, 1, 0);
+            tableLayoutPanel1.Controls.Add(btnNewPreset, 0, 0);
             tableLayoutPanel1.Location = new Point(3, 248);
             tableLayoutPanel1.Name = "tableLayoutPanel1";
             tableLayoutPanel1.RowCount = 1;
             tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
             tableLayoutPanel1.Size = new Size(255, 23);
             tableLayoutPanel1.TabIndex = 1;
+            // 
+            // btnDeletePreset
+            // 
+            btnDeletePreset.Dock = DockStyle.Fill;
+            btnDeletePreset.Location = new Point(85, 0);
+            btnDeletePreset.Margin = new Padding(0);
+            btnDeletePreset.Name = "btnDeletePreset";
+            btnDeletePreset.Size = new Size(85, 23);
+            btnDeletePreset.TabIndex = 3;
+            btnDeletePreset.Text = "Excluir";
+            btnDeletePreset.UseVisualStyleBackColor = true;
+            btnDeletePreset.Click += DeletePreset_Click;
             // 
             // btnApplyPreset
             // 
@@ -257,21 +259,10 @@
             btnApplyPreset.UseVisualStyleBackColor = true;
             btnApplyPreset.Click += ApplyPreset_Click;
             // 
-            // btnSaveAll
-            // 
-            btnSaveAll.Dock = DockStyle.Fill;
-            btnSaveAll.Location = new Point(0, 0);
-            btnSaveAll.Margin = new Padding(0);
-            btnSaveAll.Name = "btnSaveAll";
-            btnSaveAll.Size = new Size(85, 23);
-            btnSaveAll.TabIndex = 3;
-            btnSaveAll.Text = "&Salvar tudo";
-            btnSaveAll.UseVisualStyleBackColor = true;
-            // 
             // btnNewPreset
             // 
             btnNewPreset.Dock = DockStyle.Fill;
-            btnNewPreset.Location = new Point(85, 0);
+            btnNewPreset.Location = new Point(0, 0);
             btnNewPreset.Margin = new Padding(0);
             btnNewPreset.Name = "btnNewPreset";
             btnNewPreset.Size = new Size(85, 23);
@@ -288,7 +279,7 @@
             Controls.Add(listPresets);
             Name = "PresetsView";
             Size = new Size(261, 274);
-            Load += Presets_Load;
+            Tag = "Predefinições";
             ctxItem.ResumeLayout(false);
             tableLayoutPanel1.ResumeLayout(false);
             ResumeLayout(false);
@@ -301,13 +292,12 @@
         private ColumnHeader columnHeader2;
         private TableLayoutPanel tableLayoutPanel1;
         private Button btnNewPreset;
-        private Button btnSaveAll;
+        private Button btnDeletePreset;
         private Button btnApplyPreset;
         private ImageList imgLarge;
         private ToolStripMenuItem salvarTudoToolStripMenuItem;
         private ContextMenuStrip ctxItem;
         private ToolStripMenuItem itemApplyPreset;
-        private ToolStripMenuItem itemSaveAll;
         private ToolStripSeparator sprItem1;
         private ToolStripMenuItem itemNewPreset;
         private ToolStripMenuItem itemDeletePreset;

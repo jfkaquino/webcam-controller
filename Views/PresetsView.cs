@@ -8,28 +8,32 @@ using WebcamController.Services;
 
 namespace WebcamController.Views
 {
-    public partial class PresetsView : UserControl, IClosableComponent
+    public partial class PresetsView : UserControl, IMainForm
     {
         public PresetController PresetController { get; set; }
         public CameraController CameraController { get; set; }
-        public HotkeyService HotkeyService { get; set; }
 
-        private bool _isUpdating = false;
-        private bool _unsavedChanges = false;
         public PresetsView()
         {
             InitializeComponent();
         }
 
-        #region Life cycle
-
-        private void Presets_Load(object sender, EventArgs e)
+        public void Initialize(
+            PresetController presetController,
+            CameraController cameraController,
+            HotkeyService hotkeyService)
         {
+            PresetController = presetController;
+            CameraController = cameraController;
+
             PresetController.PresetChanged += OnPresetChanged;
             PresetController.PresetApplied += OnPresetApplied;
+            CameraController.DeviceChanged += OnDeviceChanged;
             ChangeListViewMode(Settings.Default.ListViewMode);
             LoadPresets();
         }
+
+        #region Life cycle
 
         public void OnMainFormClosing(object sender, FormClosingEventArgs e)
         {
@@ -38,36 +42,32 @@ namespace WebcamController.Views
 
         private void LoadPresets()
         {
-            _isUpdating = true;
             listPresets.Items.Clear();
             listPresets.BeginUpdate();
             PresetController.LoadData();
             listPresets.EndUpdate();
-            _isUpdating = false;
             UpdateButtonsState();
         }
 
         #endregion
 
-        #region Manual binding
+        #region Event binding
 
         private void OnPresetChanged(object? sender, PresetChange e)
         {
-            _isUpdating = true;
             switch (e.ChangeType)
             {
                 case PresetChangeType.Loaded: AddPresetToListView(e.Preset); break;
-                case PresetChangeType.Updated: UpdatePresetInListView(e.Preset); break;
-                case PresetChangeType.Removed: RemovePresetFromListView(e.Preset); break;
                 case PresetChangeType.Created: CreatePresetinListView(e.Preset); break;
+                case PresetChangeType.Updated: UpdatePresetInListView(e.Preset); break;
+                case PresetChangeType.Removed: RemovePresetFromListView(e.Preset); break;   
             }
-            _isUpdating = false;
         }
 
         private void OnPresetApplied(object? sender, PresetAppliedEventArgs e)
         {
             var item = FindItemPreset(e.Preset.Id);
-            listPresets.Focus();
+            listPresets.SelectedItems.Clear();
             item.Group.CollapsedState = ListViewGroupCollapsedState.Expanded;
             item.EnsureVisible();
             item.Selected = true;
@@ -82,7 +82,7 @@ namespace WebcamController.Views
 
             if (group == null)
             {
-                bool status = CameraController.Devices.Any(d => d.DevicePath == preset.Device.DevicePath);
+                bool status = CameraController.IsDeviceAvailable(preset.Device);
                 group = new ListViewGroup
                 {
                     Header = preset.Device.FriendlyName,
@@ -96,7 +96,10 @@ namespace WebcamController.Views
             var item = new ListViewItem(preset.Name)
             {
                 Name = preset.Id.ToString(),
-                ToolTipText = $"ID: {preset.Id}\nNome: {preset.Name}\nAtalho: {preset.Hotkey?.DisplayString ?? "Nenhum"}\nDispositivo: {preset.Device.FriendlyName}",
+                ToolTipText = $"ID: {preset.Id}" +
+                $"\nNome: {preset.Name}" +
+                $"\nAtalho: {preset.Hotkey?.DisplayString ?? "Nenhum"}" +
+                $"\nDispositivo: {preset.Device.FriendlyName}",
                 Group = group,
                 Tag = preset
             };
@@ -107,13 +110,27 @@ namespace WebcamController.Views
             listPresets.EndUpdate();
         }
 
+        private void CreatePresetinListView(Preset preset)
+        {
+            AddPresetToListView(preset);
+            var item = FindItemPreset(preset.Id);
+            listPresets.SelectedItems.Clear();
+            item.Group.CollapsedState = ListViewGroupCollapsedState.Expanded;
+            item.EnsureVisible();
+            item.Selected = true;
+            item.BeginEdit();
+        }
+
         private void UpdatePresetInListView(Preset preset)
         {
             var item = FindItemPreset(preset.Id);
             if (item == null) return;
 
             item.Tag = preset;
-            item.ToolTipText = $"ID: {preset.Id}\nNome: {preset.Name}\nAtalho: {preset.Hotkey?.DisplayString ?? "Nenhum"}\nDispositivo: {preset.Device.FriendlyName}";
+            item.ToolTipText = $"ID: {preset.Id}" +
+                $"\nNome: {preset.Name}" +
+                $"\nAtalho: {preset.Hotkey?.DisplayString ?? "Nenhum"}" +
+                $"\nDispositivo: {preset.Device.FriendlyName}";
             item.SubItems[1].Text = preset.Hotkey?.DisplayString ?? "Nenhum";
             item.SubItems[2].Text = preset.Id.ToString();
         }
@@ -132,27 +149,18 @@ namespace WebcamController.Views
             }
         }
 
-        private void CreatePresetinListView(Preset preset)
+        private void OnDeviceChanged(object? sender, DeviceChangedEventArgs e)
         {
-            AddPresetToListView(preset);
-            var item = FindItemPreset(preset.Id);
-            listPresets.SelectedItems.Clear();
-            item.Group.CollapsedState = ListViewGroupCollapsedState.Expanded;
-            item.EnsureVisible();
-            item.Selected = true;
-            item.BeginEdit();
+            if(e.Status == DeviceStatus.NotSupported)
+            {
+                btnNewPreset.Enabled = false;
+                itemNewPreset.Enabled = false;
+            }
         }
 
         #endregion
 
         #region Item management
-
-        private void ApplyPreset()
-        {
-            var item = listPresets.SelectedItems[0];
-            if (item == null) return;
-            PresetController.ApplyPreset(SelectedPreset);
-        }
 
         private void NewPreset()
         {
@@ -187,14 +195,25 @@ namespace WebcamController.Views
             }
         }
 
+        private void ApplyPreset()
+        {
+            var item = listPresets.SelectedItems[0];
+            if (item == null) return;
+            try
+            {
+                PresetController.ApplyPreset(SelectedPreset);
+            }
+            catch (DataException ex)
+            {
+                MessageBox.Show($"Erro ao aplicar predefinição: {ex.Message}", "Erro", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
         #endregion
 
         #region UI events
 
-        private void listPresets_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            UpdateButtonsState();
-        }
+        private void listPresets_SelectedIndexChanged(object sender, EventArgs e) => UpdateButtonsState();
 
         private void UpdateButtonsState()
         {
@@ -208,6 +227,7 @@ namespace WebcamController.Views
             itemSelectAll.Visible = none;
             itemApplyPreset.Visible = single;
 
+            btnDeletePreset.Enabled = any;
             itemDeletePreset.Visible = any;
             itemDeletePreset.Enabled = any;
 
@@ -253,11 +273,12 @@ namespace WebcamController.Views
 
         private void SetHotkey_Click(object sender, EventArgs e)
         {
+            var preset = SelectedPreset;
             var hotkeyReader = new HotkeyReader();
             hotkeyReader.ShowDialog();
             if (hotkeyReader.DialogResult == DialogResult.OK)
             {
-                PresetController.SetPresetHotkey(SelectedPreset, hotkeyReader.Hotkey);
+                PresetController.SetPresetHotkey(preset, hotkeyReader.Hotkey);
             }
         }
 

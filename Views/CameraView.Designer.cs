@@ -284,7 +284,6 @@
             Controls.Add(tableLayoutPanel1);
             Name = "CameraView";
             Size = new Size(380, 341);
-            Load += CameraView_Load;
             tableLayoutPanel1.ResumeLayout(false);
             grpZoom.ResumeLayout(false);
             tableLayoutPanel5.ResumeLayout(false);

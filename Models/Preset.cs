@@ -20,7 +20,6 @@ namespace WebcamController.Models
             };
             
             Name = other.Name;
-            Hotkey = other.Hotkey;
             CameraControls = other.CameraControls;
             Device = device;
         }

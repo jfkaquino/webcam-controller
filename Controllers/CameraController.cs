@@ -37,10 +37,25 @@ namespace WebcamController.Controllers
             }
         }
 
+        public bool IsDeviceAvailable(Device device)
+        {
+            if(!Devices.Any()) GetAvailableDevices();
+            return Devices.Any(d => d.DevicePath == device.DevicePath);
+        }
+
         public void Connect(Device device)
         {
-            _cameraService.Connect(device);
-            OnDeviceChanged(device, DeviceStatus.Connected);
+            if(!IsDeviceAvailable(device)) throw new InvalidOperationException("Device not available.");
+            try
+            {
+                _cameraService.Connect(device);
+                OnDeviceChanged(device, DeviceStatus.Connected);
+            }
+            catch (NotSupportedException)
+            {
+                OnDeviceChanged(device, DeviceStatus.NotSupported);
+                throw;
+            }
         }
 
         public void Disconnect()
@@ -50,13 +65,10 @@ namespace WebcamController.Controllers
             OnDeviceChanged(device, DeviceStatus.Disconnected);
         }
 
-        public void UpdateProperties()
-        {
-           
-        }
-
         public void ApplyPreset(Preset preset)
         {
+            if(!IsDeviceAvailable(preset.Device)) throw new InvalidOperationException("Device not available.");
+
             foreach (var property in preset.CameraControls)
             {
                 SetProperty(property.Property, property.Value, property.Flags);
@@ -73,7 +85,25 @@ namespace WebcamController.Controllers
         {
             return _cameraService.GetControlProperty(property);
         }
-        
+
+        public void GetAllProperties()
+        {
+            CameraControls.Clear();
+            foreach (CameraControlProperty property in Enum.GetValues(typeof(CameraControlProperty)))
+            {
+                if (SupportsProperty(property))
+                {
+                    var (value, flags) = GetProperty(property);
+                    CameraControls.Add(new CameraControl
+                    {
+                        Property = property,
+                        Value = value,
+                        Flags = flags
+                    });
+                }
+            }
+        }
+
         public bool SupportsProperty(CameraControlProperty property)
         {
             return _cameraService.SupportsControlProperty(property);
@@ -103,7 +133,8 @@ namespace WebcamController.Controllers
 public enum DeviceStatus {
     Connected,
     Disconnected,
-    Available
+    Available,
+    NotSupported
 }
 
 public class DeviceChangedEventArgs(Device device, DeviceStatus status) : EventArgs
