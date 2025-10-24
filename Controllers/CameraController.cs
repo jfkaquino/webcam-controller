@@ -10,36 +10,41 @@ namespace WebcamController.Controllers
     {
         private CameraService _cameraService;
 
-        public event EventHandler<DeviceChangedEventArgs> DeviceChanged;
+        public event EventHandler<DeviceConnectedEventArgs> DeviceConnected;
         public event EventHandler<PropertyChangedEventArgs> PropertyChanged;
 
-        public List<Device> Devices { get; set; } = new();
-
         public Device ConnectedDevice => _cameraService.ConnectedDevice;
-        public List<CameraControl> CameraControls { get; set; } = new();
+        public List<Device> Devices
+        {
+            get
+            {
+                return _cameraService.GetAvailableDevices();
+            }
+        }
+
+        public List<CameraControl> Properties
+        {
+            get
+            {
+                return GetAllSettings();
+            }
+        }
+
+        public List<SettingRange> PropertiesRanges
+        {
+            get
+            {
+                return GetAllSettingsRanges();
+            }
+        }
 
         public CameraController(CameraService cameraService)
         {
             _cameraService = cameraService;
         }
 
-        public void GetAvailableDevices()
-        {
-            foreach (var camera in _cameraService.GetAvailableCameras())
-            {
-                Device device = new Device
-                {
-                    DevicePath = camera.DevicePath,
-                    FriendlyName = camera.Name
-                };
-                Devices.Add(device);
-                OnDeviceChanged(device, DeviceStatus.Available);
-            }
-        }
-
         public bool IsDeviceAvailable(Device device)
         {
-            if(!Devices.Any()) GetAvailableDevices();
             return Devices.Any(d => d.DevicePath == device.DevicePath);
         }
 
@@ -62,91 +67,88 @@ namespace WebcamController.Controllers
         {
             var device = _cameraService.ConnectedDevice;
             _cameraService.Disconnect();
-            OnDeviceChanged(device, DeviceStatus.Disconnected);
         }
 
         public void ApplyPreset(Preset preset)
         {
             if(!IsDeviceAvailable(preset.Device)) throw new InvalidOperationException("Device not available.");
 
-            foreach (var property in preset.CameraControls)
+            foreach (var property in preset.CameraSettings)
             {
-                SetProperty(property.Property, property.Value, property.Flags);
+                SetSetting(property);
             }
         }
 
-        public void SetProperty(CameraControlProperty property, int value, CameraControlFlags flags)
+        public void SetSetting(CameraControl property)
         {
-            _cameraService.SetControlProperty(property, value, flags);
-            OnPropertyChanged(property, value, flags);
+           _cameraService.SetSetting(property);
         }
 
-        public (int, CameraControlFlags) GetProperty(CameraControlProperty property)
+        public SettingRange GetSettingRange(Enum property)
         {
-            return _cameraService.GetControlProperty(property);
+            return _cameraService.GetSettingRange(property);
         }
 
-        public void GetAllProperties()
+        public CameraControl GetSetting(Enum property)
         {
-            CameraControls.Clear();
-            foreach (CameraControlProperty property in Enum.GetValues(typeof(CameraControlProperty)))
+            return _cameraService.GetSetting(property);
+        }
+
+        public List<SettingRange> GetAllSettingsRanges()
+        {
+            Array controlEnum = Enum.GetValues(typeof(ControlProperty));
+            List<SettingRange> propertiesRanges = new();
+
+            foreach (ControlProperty property in controlEnum)
             {
-                if (SupportsProperty(property))
-                {
-                    var (value, flags) = GetProperty(property);
-                    CameraControls.Add(new CameraControl
-                    {
-                        Property = property,
-                        Value = value,
-                        Flags = flags
-                    });
-                }
+                propertiesRanges.Add(_cameraService.GetSettingRange(property));
             }
+
+            return propertiesRanges;
         }
 
-        public bool SupportsProperty(CameraControlProperty property)
+        public List<CameraControl> GetAllSettings()
         {
-            return _cameraService.SupportsControlProperty(property);
+            Array controlEnum = Enum.GetValues(typeof(ControlProperty));
+            List<CameraControl> properties = new();
+
+            foreach (ControlProperty property in controlEnum)
+            {
+                Properties.Add(_cameraService.GetSetting(property));
+            }
+
+            return properties;
         }
 
-        public (int, int, int, int, CameraControlFlags) GetPropertyRange(CameraControlProperty property)
-        {
-            return _cameraService.GetControlPropertyRange(property);
-        }
+        public bool SupportsPropertyPages() => _cameraService.SupportsPropertiesPages();
 
-        public bool SupportsPropertyPages() => _cameraService.SupportsPropertyPages();
-
-        public void ShowPropertiesPage(nint handle) => _cameraService.ShowPropertyPage(handle);
+        public void ShowPropertiesPage(nint handle) => _cameraService.ShowPropertiesPage(handle);
 
         private void OnDeviceChanged(Device device, DeviceStatus status)
         {
-            DeviceChanged?.Invoke(this, new DeviceChangedEventArgs(device, status));
+            DeviceConnected?.Invoke(this, new DeviceConnectedEventArgs(device, status));
         }
 
-        private void OnPropertyChanged(CameraControlProperty property, int value, CameraControlFlags flags)
+        private void OnPropertyChanged(CameraControl property)
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property, value, flags));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
         }
     }
 }
 
 public enum DeviceStatus {
     Connected,
-    Disconnected,
-    Available,
     NotSupported
 }
 
-public class DeviceChangedEventArgs(Device device, DeviceStatus status) : EventArgs
+public class DeviceConnectedEventArgs(Device device, DeviceStatus status) : EventArgs
 {
     public Device Device { get; } = device;
     public DeviceStatus Status { get; } = status;
 }
 
-public class PropertyChangedEventArgs(CameraControlProperty property, int value, CameraControlFlags flags) : EventArgs
+public class PropertyChangedEventArgs(CameraControl property) : EventArgs
 {
-    public CameraControlProperty Property { get; } = property;
-    public int Value { get; } = value;
-    public CameraControlFlags Flags { get; } = flags;
+    public CameraControl Property { get; } = property;
 }
 

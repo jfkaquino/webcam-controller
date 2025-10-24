@@ -7,23 +7,38 @@ namespace WebcamController.Services
 {
     public class CameraService : IDisposable
     {
-        private IAMCameraControl _cameraControl;
-        private IBaseFilter _cameraFilter;
+        private IAMCameraControl _cameraControl = null;
+        private IBaseFilter _cameraFilter = null;
 
         public Device ConnectedDevice = null;
 
-        public List<DsDevice> GetAvailableCameras()
-        {
-            return DsDevice.GetDevicesOfCat(FilterCategory.VideoInputDevice).ToList();
-        }
+        #region Conexão do device
 
-        #region Gerenciamento de propriedades
+        public List<Device> GetAvailableDevices()
+        {
+            List<DsDevice> dsDevices = DsDevice.GetDevicesOfCat(FilterCategory.VideoInputDevice).ToList();
+            List<Device> devices = new List<Device>();
+
+            foreach (var dsDevice in dsDevices)
+            {
+                Device device = new Device
+                {
+                    DevicePath = dsDevice.DevicePath,
+                    FriendlyName = dsDevice.Name
+                };
+                devices.Add(device);
+            }
+
+            return devices;
+        }
 
         public void Connect(Device device)
         {
             if (ConnectedDevice != null) Disconnect();
 
-            var dsDevice = GetDsDevice(device);
+            var dsDevice = DsDevice.GetDevicesOfCat(FilterCategory.VideoInputDevice)
+                .FirstOrDefault(d => d.DevicePath == device.DevicePath);
+
             Guid guid = typeof(IBaseFilter).GUID;
             dsDevice.Mon.BindToObject(null, null, ref guid, out object filter);
             _cameraFilter = (IBaseFilter)filter;
@@ -31,11 +46,6 @@ namespace WebcamController.Services
             ConnectedDevice = device;
 
             if (_cameraControl == null) throw new NotSupportedException("Camera does not support IAMCameraControl.");
-        }
-
-        public void Dispose()
-        {
-            Disconnect();
         }
 
         public void Disconnect()
@@ -57,43 +67,95 @@ namespace WebcamController.Services
             ConnectedDevice = null;
         }
 
-        public bool SupportsControlProperty(CameraControlProperty prop)
+        public void Dispose()
+        {
+            Disconnect();
+        }
+
+        private void ThrowException(int hr) => DsError.ThrowExceptionForHR(hr);
+
+        #endregion
+
+        #region Configuração de propriedades
+
+        public CameraControl GetSetting(Enum property)
+        {
+            if (property is ControlProperty controlSetting)
+            {
+                _cameraControl.Get(
+                    (CameraControlProperty)controlSetting,
+                    out int value,
+                    out CameraControlFlags flags
+                );
+
+                return new ControlSetting
+                {
+                    Property = controlSetting,
+                    Value = value,
+                    Flags = (SettingFlag)flags
+                };
+            }
+            else
+            {
+                throw new NotImplementedException("Setting not implemented.");
+            }
+        }
+
+        public SettingRange GetSettingRange(Enum setting)
+        {
+            if (setting is ControlProperty controlSetting)
+            {
+                int error = _cameraControl.GetRange(
+                (CameraControlProperty)controlSetting,
+                out int min,
+                out int max,
+                out int step,
+                out int def,
+                out CameraControlFlags flags
+                );
+
+                return new SettingRange
+                {
+                    Property = controlSetting,
+                    Min = min,
+                    Max = max,
+                    Step = step,
+                    Default = def,
+                    Flags = (SettingFlag)flags
+                };
+            }
+            else
+            {
+                throw new NotImplementedException("Setting not implemented.");
+            }
+        }
+
+        public void SetSetting(CameraControl property)
+        {
+            if (property is ControlSetting controlSetting)
+            {
+                _cameraControl?.Set(
+                    (CameraControlProperty)controlSetting.Property,
+                    controlSetting.Value,
+                    (CameraControlFlags)controlSetting.Flags
+                );
+            }
+            else if (property is VideoSetting videoProperty)
+            {
+                throw new NotImplementedException("VideoProperty setting not implemented.");
+            }
+        }
+
+        public bool SupportsPropertiesPages()
         {
             if (ConnectedDevice == null) throw new InvalidOperationException("Camera is not connected.");
-
-            return _cameraControl.GetRange(prop, out _, out _, out _, out _, out _) == 0;
-        }
-
-        public (int Current, CameraControlFlags Flags) GetControlProperty(CameraControlProperty prop)
-        {
-            if (ConnectedDevice == null) throw new InvalidOperationException("Camera is not connected.");
-            _cameraControl.Get(prop, out int current, out CameraControlFlags flags);
-            return (current, flags);
-        }
-        public (int Min, int Max, int Step, int Default, CameraControlFlags Flags) GetControlPropertyRange(CameraControlProperty prop)
-        {
-            if (ConnectedDevice == null) throw new InvalidOperationException("Camera is not connected.");
-
-            _cameraControl.GetRange(prop, out int min, out int max, out int step, out int def, out CameraControlFlags flags);
-            return (min, max, step, def, flags);
-        }
-
-        public void SetControlProperty(CameraControlProperty prop, int value, CameraControlFlags flag)
-        {
-            if (ConnectedDevice == null) throw new InvalidOperationException("Camera is not connected."); ;
-            _cameraControl?.Set(prop, value, flag);
-        }
-
-        public bool SupportsPropertyPages()
-        {
-            if (ConnectedDevice == null) throw new InvalidOperationException("Camera is not connected."); ;
             return _cameraFilter is ISpecifyPropertyPages;
         }
 
-        public void ShowPropertyPage(nint ownerHandle)
+        public void ShowPropertiesPage(nint ownerHandle)
         {
             if (ConnectedDevice == null) throw new InvalidOperationException("Camera is not connected.");
-            
+
             nint filterPtr = nint.Zero;
             DsCAUUID caGUID = new DsCAUUID();
             try
@@ -114,13 +176,6 @@ namespace WebcamController.Services
                 if (caGUID.pElems != nint.Zero) Marshal.FreeCoTaskMem(caGUID.pElems);
                 if (filterPtr != nint.Zero) Marshal.Release(filterPtr);
             }
-        }
-
-        private DsDevice GetDsDevice(Device device)
-        {
-            var dsDevice = DsDevice.GetDevicesOfCat(FilterCategory.VideoInputDevice)
-                .FirstOrDefault(d => d.DevicePath == device.DevicePath);
-            return dsDevice;
         }
 
         #endregion
@@ -351,5 +406,16 @@ namespace WebcamController.Services
             int cObjects, [MarshalAs(UnmanagedType.LPArray, SizeParamIndex = 4)] nint[] ppUnk,
             int cPages, nint pPageClsID, int lcid, int dwReserved, nint pvReserved);
         }
+    }
+
+    public class SettingRange
+    {
+        public Enum Property { get; set; }
+        public bool IsSupported => Max > Min;
+        public int Min { get; set; }
+        public int Max { get; set; }
+        public int Step { get; set; }
+        public int Default { get; set; }
+        public SettingFlag Flags { get; set; }
     }
 }

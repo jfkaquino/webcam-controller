@@ -25,13 +25,13 @@ namespace WebcamController.Views
             ConnectCamera();
             ConfigureCameraControls();
             UpdateCameraControls();
-            CameraController.DeviceChanged += OnDeviceChanged;
+            CameraController.DeviceConnected += OnDeviceChanged;
             CameraController.PropertyChanged += OnPropertyChanged;
         }
 
         #region Life cycle
 
-        private void OnDeviceChanged(object? sender, DeviceChangedEventArgs e)
+        private void OnDeviceChanged(object? sender, DeviceConnectedEventArgs e)
         {
             _isUpdating = true;
             if (e.Status == DeviceStatus.Connected) cmbDevices.SelectedItem = e.Device;
@@ -43,7 +43,6 @@ namespace WebcamController.Views
 
         private void LoadDevices()
         {
-            CameraController.GetAvailableDevices();
             cmbDevices.DataSource = CameraController.Devices;
             cmbDevices.DisplayMember = "FriendlyName";
             cmbDevices.ValueMember = "DevicePath";
@@ -79,56 +78,56 @@ namespace WebcamController.Views
             linkAdvancedProperties.Enabled = CameraController.SupportsPropertyPages();
 
             // Pan
-            grpPan.Enabled = isConnected && CameraController.SupportsProperty(CameraControlProperty.Pan);
-            var (minPan, maxPan, stepPan, defPan, _) = CameraController.GetPropertyRange(CameraControlProperty.Pan);
+            var panSetting = CameraController.GetSettingRange(ControlProperty.Pan);
+            grpPan.Enabled = isConnected && panSetting.IsSupported;
 
-            trkPan.Minimum = minPan;
-            trkPan.Maximum = maxPan;
-            trkPan.SmallChange = stepPan;
+            trkPan.Minimum = panSetting.Min;
+            trkPan.Maximum = panSetting.Max;
+            trkPan.SmallChange = panSetting.Step;
 
-            numPan.Minimum = minPan;
-            numPan.Maximum = maxPan;
-            numPan.Increment = stepPan;
+            numPan.Minimum = panSetting.Min;
+            numPan.Maximum = panSetting.Max;
+            numPan.Increment = panSetting.Step;
 
             // Tilt
-            grpTilt.Enabled = isConnected && CameraController.SupportsProperty(CameraControlProperty.Tilt);
-            var (minTilt, maxTilt, stepTilt, defTilt, _) = CameraController.GetPropertyRange(CameraControlProperty.Tilt);
+            var tiltSetting = CameraController.GetSettingRange(ControlProperty.Tilt);
+            grpTilt.Enabled = isConnected && tiltSetting.IsSupported;
 
-            trkTilt.Minimum = minTilt;
-            trkTilt.Maximum = maxTilt;
-            trkTilt.SmallChange = stepTilt;
+            trkTilt.Minimum = tiltSetting.Min;
+            trkTilt.Maximum = tiltSetting.Max;
+            trkTilt.SmallChange = tiltSetting.Step;
 
-            numTilt.Minimum = minTilt;
-            numTilt.Maximum = maxTilt;
-            numTilt.Increment = stepTilt;
+            numTilt.Minimum = tiltSetting.Min;
+            numTilt.Maximum = tiltSetting.Max;
+            numTilt.Increment = tiltSetting.Step;
 
             // Zoom
-            grpZoom.Enabled = isConnected && CameraController.SupportsProperty(CameraControlProperty.Zoom);
-            var (minZoom, maxZoom, stepZoom, defZoom, _) = CameraController.GetPropertyRange(CameraControlProperty.Zoom);
+            var zoomSetting = CameraController.GetSettingRange(ControlProperty.Zoom);
+            grpZoom.Enabled = isConnected && zoomSetting.IsSupported;
 
-            trkZoom.Minimum = minZoom;
-            trkZoom.Maximum = maxZoom;
-            trkZoom.SmallChange = stepZoom;
+            trkZoom.Minimum = zoomSetting.Min;
+            trkZoom.Maximum = zoomSetting.Max;
+            trkZoom.SmallChange = zoomSetting.Step;
 
-            numZoom.Minimum = minZoom;
-            numZoom.Maximum = maxZoom;
-            numZoom.Increment = stepZoom;
+            numZoom.Minimum = zoomSetting.Min;
+            numZoom.Maximum = zoomSetting.Max;
+            numZoom.Increment = zoomSetting.Step;
 
         }
 
         private void UpdateCameraControls()
         {
-            (int currentPan, _) = CameraController.GetProperty(CameraControlProperty.Pan);
-            trkPan.Value = currentPan;
-            numPan.Value = currentPan;
+            var panSetting = CameraController.GetSetting(ControlProperty.Pan);
+            trkPan.Value = panSetting.Value;
+            numPan.Value = panSetting.Value;
 
-            (int currentTilt, _) = CameraController.GetProperty(CameraControlProperty.Pan);
-            trkTilt.Value = currentTilt;
-            numTilt.Value = currentTilt;
+            var tiltSetting = CameraController.GetSetting(ControlProperty.Tilt);
+            trkTilt.Value = tiltSetting.Value;
+            numTilt.Value = tiltSetting.Value;
 
-            (int currentZoom, _) = CameraController.GetProperty(CameraControlProperty.Zoom);
-            trkZoom.Value = currentZoom;
-            numZoom.Value = currentZoom;
+            var zoomSetting = CameraController.GetSetting(ControlProperty.Tilt);
+            trkZoom.Value = zoomSetting.Value;
+            numZoom.Value = zoomSetting.Value;
         }
 
         #endregion

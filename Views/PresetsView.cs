@@ -28,7 +28,7 @@ namespace WebcamController.Views
 
             PresetController.PresetChanged += OnPresetChanged;
             PresetController.PresetApplied += OnPresetApplied;
-            CameraController.DeviceChanged += OnDeviceChanged;
+            CameraController.DeviceConnected += OnDeviceChanged;
             ChangeListViewMode(Settings.Default.ListViewMode);
             LoadPresets();
         }
@@ -60,7 +60,7 @@ namespace WebcamController.Views
                 case PresetChangeType.Loaded: AddPresetToListView(e.Preset); break;
                 case PresetChangeType.Created: CreatePresetinListView(e.Preset); break;
                 case PresetChangeType.Updated: UpdatePresetInListView(e.Preset); break;
-                case PresetChangeType.Removed: RemovePresetFromListView(e.Preset); break;   
+                case PresetChangeType.Removed: RemovePresetFromListView(e.Preset); break;
             }
         }
 
@@ -149,9 +149,9 @@ namespace WebcamController.Views
             }
         }
 
-        private void OnDeviceChanged(object? sender, DeviceChangedEventArgs e)
+        private void OnDeviceChanged(object? sender, DeviceConnectedEventArgs e)
         {
-            if(e.Status == DeviceStatus.NotSupported)
+            if (e.Status == DeviceStatus.NotSupported)
             {
                 btnNewPreset.Enabled = false;
                 itemNewPreset.Enabled = false;
@@ -309,6 +309,11 @@ namespace WebcamController.Views
 
         private ListViewItem FindItemPreset(int presetId) =>
             listPresets.Items.Cast<ListViewItem>().FirstOrDefault(i => ((Preset)i.Tag).Id == presetId);
+
+        private void itemReadOnly_Click(object sender, EventArgs e)
+        {
+
+        }
 
         private Preset SelectedPreset => (Preset)listPresets.SelectedItems[0].Tag;
 

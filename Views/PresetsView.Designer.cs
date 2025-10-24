@@ -29,8 +29,8 @@
         private void InitializeComponent()
         {
             components = new System.ComponentModel.Container();
-            ListViewGroup listViewGroup1 = new ListViewGroup("Nome da câmera", HorizontalAlignment.Left);
-            ListViewItem listViewItem1 = new ListViewItem(new string[] { "Novo Preset", "Ctrl+Shift+1" }, -1);
+            ListViewGroup listViewGroup2 = new ListViewGroup("Nome da câmera", HorizontalAlignment.Left);
+            ListViewItem listViewItem2 = new ListViewItem(new string[] { "Novo Preset", "Ctrl+Shift+1" }, -1);
             listPresets = new ListView();
             columnHeader1 = new ColumnHeader();
             columnHeader2 = new ColumnHeader();
@@ -55,6 +55,8 @@
             btnDeletePreset = new Button();
             btnApplyPreset = new Button();
             btnNewPreset = new Button();
+            opçõesToolStripMenuItem = new ToolStripMenuItem();
+            itemReadOnly = new ToolStripMenuItem();
             ctxItem.SuspendLayout();
             tableLayoutPanel1.SuspendLayout();
             SuspendLayout();
@@ -65,14 +67,14 @@
             listPresets.Columns.AddRange(new ColumnHeader[] { columnHeader1, columnHeader2 });
             listPresets.ContextMenuStrip = ctxItem;
             listPresets.FullRowSelect = true;
-            listViewGroup1.CollapsedState = ListViewGroupCollapsedState.Expanded;
-            listViewGroup1.Header = "Nome da câmera";
-            listViewGroup1.Name = "listViewGroup1";
-            listViewGroup1.Subtitle = "Status";
-            listPresets.Groups.AddRange(new ListViewGroup[] { listViewGroup1 });
+            listViewGroup2.CollapsedState = ListViewGroupCollapsedState.Expanded;
+            listViewGroup2.Header = "Nome da câmera";
+            listViewGroup2.Name = "listViewGroup1";
+            listViewGroup2.Subtitle = "Status";
+            listPresets.Groups.AddRange(new ListViewGroup[] { listViewGroup2 });
             listPresets.HeaderStyle = ColumnHeaderStyle.Nonclickable;
-            listViewItem1.Group = listViewGroup1;
-            listPresets.Items.AddRange(new ListViewItem[] { listViewItem1 });
+            listViewItem2.Group = listViewGroup2;
+            listPresets.Items.AddRange(new ListViewItem[] { listViewItem2 });
             listPresets.LabelEdit = true;
             listPresets.Location = new Point(3, 3);
             listPresets.Name = "listPresets";
@@ -97,9 +99,9 @@
             // 
             // ctxItem
             // 
-            ctxItem.Items.AddRange(new ToolStripItem[] { itemViewMode, itemSelectAll, itemApplyPreset, sprItem1, itemNewPreset, itemDeletePreset, itemRenamePreset, sprItem2, itemHotkey });
+            ctxItem.Items.AddRange(new ToolStripItem[] { itemViewMode, itemSelectAll, itemApplyPreset, sprItem1, itemNewPreset, itemDeletePreset, itemRenamePreset, sprItem2, itemHotkey, opçõesToolStripMenuItem });
             ctxItem.Name = "contextItem";
-            ctxItem.Size = new Size(199, 170);
+            ctxItem.Size = new Size(199, 214);
             // 
             // itemViewMode
             // 
@@ -271,6 +273,21 @@
             btnNewPreset.UseVisualStyleBackColor = true;
             btnNewPreset.Click += NewPreset_Click;
             // 
+            // opçõesToolStripMenuItem
+            // 
+            opçõesToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { itemReadOnly });
+            opçõesToolStripMenuItem.Name = "opçõesToolStripMenuItem";
+            opçõesToolStripMenuItem.Size = new Size(198, 22);
+            opçõesToolStripMenuItem.Text = "Opções";
+            // 
+            // itemReadOnly
+            // 
+            itemReadOnly.CheckOnClick = true;
+            itemReadOnly.Name = "itemReadOnly";
+            itemReadOnly.Size = new Size(180, 22);
+            itemReadOnly.Text = "Somente leitura";
+            itemReadOnly.Click += itemReadOnly_Click;
+            // 
             // PresetsView
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
@@ -312,5 +329,7 @@
         private ToolStripMenuItem toolStripMenuItem10;
         private ToolStripMenuItem toolStripMenuItem11;
         private ToolStripMenuItem itemSelectAll;
+        private ToolStripMenuItem opçõesToolStripMenuItem;
+        private ToolStripMenuItem itemReadOnly;
     }
 }

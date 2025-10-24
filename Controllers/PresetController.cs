@@ -59,7 +59,6 @@ namespace WebcamController.Controllers
             var newPreset = new Preset
             {
                 Name = "Novo preset",
-                CameraControls = _cameraController.CameraControls,
                 Device = savedDevice
             };
 

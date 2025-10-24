@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WebcamController.Models
@@ -8,8 +9,9 @@ namespace WebcamController.Models
         public int Id { get; set; }
         public required string Name { get; set; }
         public Hotkey? Hotkey { get; set; } = null;
-        public List<CameraControl> CameraControls { get; set; } = new();
+        public List<CameraControl> CameraSettings { get; set; } = new();
         public required Device Device { get; set; }
+        public Options Options { get; set; } = new();
 
         public void UpdateFrom(Preset other)
         {
@@ -20,8 +22,14 @@ namespace WebcamController.Models
             };
             
             Name = other.Name;
-            CameraControls = other.CameraControls;
+            CameraSettings = other.CameraSettings;
             Device = device;
         }
+    }
+
+    [Owned]
+    public class Options
+    {
+        public bool ReadOnly { get; set; } = false;
     }
 }
